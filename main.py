@@ -1,4 +1,3 @@
-from turtle import width
 import pygame
 import random
 from pygame.locals import *
@@ -9,7 +8,7 @@ SCREEN_HEIGHT = 800
 # animation parameters
 SPEED = 20
 
-
+pygame.mixer.init()
 pygame.init()
 
 class Player(pygame.sprite.Sprite):
@@ -94,13 +93,17 @@ enemies2 = pygame.sprite.Group()
 enemies2.add(enemy)
 
 
+# Load and play our background music
+pygame.mixer.music.load("audios/sound.wav")
+pygame.mixer.music.play(loops=-1)
+
 counter=0
 running = True
 while running:
     counter += 1
 
     # increase game difficulty overtime
-    if counter == 50 and enemy.speed <100:
+    if counter == 200 and enemy.speed <100:
         enemy.speed += 5
         enemy2.speed += 5
         counter = 0
@@ -145,4 +148,7 @@ while running:
     clock.tick(9)
     
 
+# At this point, we're done, so we can stop and quit the mixer
+pygame.mixer.music.stop()
+pygame.mixer.quit()
 pygame.quit()
