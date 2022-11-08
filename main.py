@@ -3,7 +3,7 @@ import pygame_menu
 import random
 from pygame.locals import *
 from algoFunctions import *
-
+from algoFunctions2 import *
 
 
 pygame.mixer.init()
@@ -93,6 +93,8 @@ class Enemy(pygame.sprite.Sprite):
                     self.position = 0
                 elif random_number == 5 :
                     self.position = 1
+                else:
+                    self.position = 2
             
 def draw_road(screen):
     roadmark_w = int(SCREEN_WIDTH/80)
@@ -129,7 +131,7 @@ def game(screen, max_score, play):
     all_sprites = pygame.sprite.Group()
     all_sprites.add(player)
     all_sprites.add(enemy)
-    if play == 0:
+    if play == 0 or play == 3:
         enemy2 = Enemy("images/otherCar.png")
         enemies.add(enemy2)
         #for collision enemy-enemy
@@ -152,9 +154,10 @@ def game(screen, max_score, play):
     while running:
         counter += 1
         if enemy.rect.center[1] == SCREEN_HEIGHT * 0.1:
-            # player.position = 0
-            # enemy.position = 2
-            state = State(player, enemy)
+            if play == 3 : 
+                state = State2(player, enemies)
+            else:
+                state = State(player, enemy)
             episode += 1
 
         # increase game difficulty overtime
@@ -194,39 +197,61 @@ def game(screen, max_score, play):
             enemy.update()
             enemy2.update()
 
-            # Check if car2(enemy2) have collided with the other enemy (car)
-            if not pygame.sprite.spritecollideany(enemy2, enemies2):
-                #if not, draw it
-                screen.blit(enemy2.surf, enemy2.rect)
-
             # Check if any enemies have collided with the player
             if pygame.sprite.spritecollideany(player, enemies):
                 # If so, then remove the player and stop the loop
                 player.kill()
-                running = False   
+                running = False 
 
-        elif play == 2 or play ==1 : #AI play
+        if play == 0 or play == 3:
+            # Check if car2(enemy2) have collided with the other enemy (car)
+            if not pygame.sprite.spritecollideany(enemy2, enemies2):
+                #if not, draw it
+                screen.blit(enemy2.surf, enemy2.rect)  
+
+        if play == 2 or play ==1 or play == 3 : #AI play
             #update sprites position
             enemy.update()
+            if play == 3:
+                enemy2.update()
+
             if play == 1:
                 epsilon = 0
-            action = get_action(state, epsilon)
-            player.update_AI(action) #move to new state=action
-            reward = get_reward(player, enemies)
-            points +=reward
-            new_state = State(player, enemy)
-            s = state.get_state()
-            if play == 2 :
-                qTable[s][action] = qTable[s][action] + lr *(reward+dr*np.max(qTable[new_state.get_state()][:])-qTable[s][action])
-            state = new_state
-            if reward == -100:
-                score = 0
-                Data.append(points)
-                points = 0
-            elif reward == 2:
-                score += 1
-                Data.append(points)
-                points = 0   
+            if play == 3:
+                action = get_action2(state, epsilon)
+                player.update_AI(action) #move to new state=action
+                reward = get_reward2(player, enemies)
+                points +=reward
+                new_state = State2(player, enemies)
+                s = state.get_state()
+                qTable2[s][action] = qTable2[s][action] + lr *(reward+dr*np.max(qTable2[new_state.get_state()][:])-qTable2[s][action])
+                state = new_state
+                if reward == -100:
+                    score = 0
+                    Data.append(points)
+                    points = 0
+                elif reward == 10:
+                    score += 1
+                    Data.append(points)
+                    points = 0
+            else:
+                action = get_action(state, epsilon)
+                player.update_AI(action) #move to new state=action
+                reward = get_reward(player, enemies)
+                points +=reward
+                new_state = State(player, enemy)
+                s = state.get_state()
+                if play == 2 :
+                    qTable[s][action] = qTable[s][action] + lr *(reward+dr*np.max(qTable[new_state.get_state()][:])-qTable[s][action])
+                state = new_state
+                if reward == -100:
+                    score = 0
+                    Data.append(points)
+                    points = 0
+                elif reward == 2:
+                    score += 1
+                    Data.append(points)
+                    points = 0   
             
             if epsilon > epsilon_min:
                 epsilon = epsilon * epsilon_decay
@@ -257,6 +282,10 @@ def game(screen, max_score, play):
     g.write(str(qTable))
     g.close()  
 
+    t = open('qTable3.txt', 'w')
+    t.write(str(qTable2))
+    t.close() 
+
     # At this point, we're done, so we can stop and quit the mixer
     # pygame.mixer.music.stop()
     # pygame.mixer.quit()
@@ -270,10 +299,12 @@ def display_menu(screen, max_score):
     you_play = 0
     ai_play = 1
     ai_learn = 2
+    ai_learn2 = 3
 
     menu = pygame_menu.Menu('Welcome', width=SCREEN_WIDTH, height=SCREEN_HEIGHT, theme=pygame_menu.themes.THEME_DEFAULT)
-    menu.add.button('Learn AI play', game, screen, max_score, ai_learn)
+    menu.add.button('Let AI learn', game, screen, max_score, ai_learn)
     menu.add.button('Let AI play', game, screen, max_score, ai_play)
+    menu.add.button('Let AI learn level 2', game, screen, max_score, ai_learn2)
     menu.add.button('Play yourself', game, screen, max_score, you_play)
     menu.add.button('Quit', pygame_menu.events.EXIT)
     menu.mainloop(screen)
