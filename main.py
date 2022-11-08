@@ -51,9 +51,9 @@ class Player(pygame.sprite.Sprite):
         action = 2 : move left
         """
         if action == 2:
-            self.rect.move_ip(-int(SCREEN_WIDTH/3), 0)
+                self.rect.move_ip(-int(SCREEN_WIDTH/3), 0)
         if action == 1:
-            self.rect.move_ip(int(SCREEN_WIDTH/3), 0)
+                self.rect.move_ip(int(SCREEN_WIDTH/3), 0)
 
         # Keep player on the screen
         left_corner = int(SCREEN_WIDTH/2 - SCREEN_WIDTH/3)-self.surf.get_width()/2
@@ -141,7 +141,7 @@ def game(screen, max_score, play):
     # pygame.mixer.music.load("audios/sound.wav")
     # pygame.mixer.music.play(loops=-1)
 
-    lr = .5
+    lr = .89
     dr = .99
     epsilon = 1.0
     points = 0
@@ -187,7 +187,7 @@ def game(screen, max_score, play):
         for entity in all_sprites:
             screen.blit(entity.surf, entity.rect)
 
-        if play == 0:
+        if play == 0: # You play
             score = episode -1
             #update sprites position
             player.update(pressed_keys)
@@ -205,22 +205,19 @@ def game(screen, max_score, play):
                 player.kill()
                 running = False   
 
-        elif play == 2 or play ==3 :
+        elif play == 2 or play ==1 : #AI play
             #update sprites position
             enemy.update()
-
-            if play ==3:
+            if play == 1:
                 epsilon = 0
-                # action = get_action3()
-            else :
-                action = get_action(state, epsilon)
+            action = get_action(state, epsilon)
             player.update_AI(action) #move to new state=action
             reward = get_reward(player, enemies)
             points +=reward
             new_state = State(player, enemy)
             s = state.get_state()
             if play == 2 :
-                QTable[s][action] = QTable[s][action] + lr *(reward+dr*np.max(QTable[new_state.get_state()][:])-QTable[s][action])
+                qTable[s][action] = qTable[s][action] + lr *(reward+dr*np.max(qTable[new_state.get_state()][:])-qTable[s][action])
             state = new_state
             if reward == -100:
                 score = 0
@@ -257,7 +254,7 @@ def game(screen, max_score, play):
     f.close()
 
     g = open('qTable.txt', 'w')
-    g.write(str(QTable))
+    g.write(str(qTable))
     g.close()  
 
     # At this point, we're done, so we can stop and quit the mixer
