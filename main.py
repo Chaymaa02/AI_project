@@ -131,7 +131,7 @@ def game(screen, max_score, play):
     all_sprites = pygame.sprite.Group()
     all_sprites.add(player)
     all_sprites.add(enemy)
-    if play == 0 or play == 3:
+    if play == 0 or play == 3 or play ==4 :
         enemy2 = Enemy("images/otherCar.png")
         enemies.add(enemy2)
         #for collision enemy-enemy
@@ -203,55 +203,58 @@ def game(screen, max_score, play):
                 player.kill()
                 running = False 
 
-        if play == 0 or play == 3:
+        if play == 0 or play == 3 or play == 4:
             # Check if car2(enemy2) have collided with the other enemy (car)
             if not pygame.sprite.spritecollideany(enemy2, enemies2):
                 #if not, draw it
-                screen.blit(enemy2.surf, enemy2.rect)  
+                screen.blit(enemy2.surf, enemy2.rect) 
 
-        if play == 2 or play ==1 or play == 3 : #AI play
+        if play == 3 or play == 4: #AI play level 2
             #update sprites position
             enemy.update()
+            enemy2.update()
+            if play == 4 :
+                epsilon = 0
+            action = get_action2(state, epsilon)
+            player.update_AI(action) #move to new state=action
+            reward = get_reward2(player, enemies)
+            points +=reward
+            new_state = State2(player, enemies)
+            s = state.get_state()
             if play == 3:
-                enemy2.update()
+                qTable2[s][action] = qTable2[s][action] + lr *(reward+dr*np.max(qTable2[new_state.get_state()][:])-qTable2[s][action])
+            state = new_state
+            if reward == -100:
+                score = 0
+                points = 0
+            elif reward == 10:
+                score += 1
+                points = 0
+            if epsilon > epsilon_min:
+                epsilon = epsilon * epsilon_decay
+
+        if play == 2 or play ==1 : #AI play level 1
+            #update sprites position
+            enemy.update()
 
             if play == 1:
                 epsilon = 0
-            if play == 3:
-                action = get_action2(state, epsilon)
-                player.update_AI(action) #move to new state=action
-                reward = get_reward2(player, enemies)
-                points +=reward
-                new_state = State2(player, enemies)
-                s = state.get_state()
-                qTable2[s][action] = qTable2[s][action] + lr *(reward+dr*np.max(qTable2[new_state.get_state()][:])-qTable2[s][action])
-                state = new_state
-                if reward == -100:
-                    score = 0
-                    Data.append(points)
-                    points = 0
-                elif reward == 10:
-                    score += 1
-                    Data.append(points)
-                    points = 0
-            else:
-                action = get_action(state, epsilon)
-                player.update_AI(action) #move to new state=action
-                reward = get_reward(player, enemies)
-                points +=reward
-                new_state = State(player, enemy)
-                s = state.get_state()
-                if play == 2 :
-                    qTable[s][action] = qTable[s][action] + lr *(reward+dr*np.max(qTable[new_state.get_state()][:])-qTable[s][action])
-                state = new_state
-                if reward == -100:
-                    score = 0
-                    Data.append(points)
-                    points = 0
-                elif reward == 2:
-                    score += 1
-                    Data.append(points)
-                    points = 0   
+            
+            action = get_action(state, epsilon)
+            player.update_AI(action) #move to new state=action
+            reward = get_reward(player, enemies)
+            points +=reward
+            new_state = State(player, enemy)
+            s = state.get_state()
+            if play == 2 :
+                qTable[s][action] = qTable[s][action] + lr *(reward+dr*np.max(qTable[new_state.get_state()][:])-qTable[s][action])
+            state = new_state
+            if reward == -100:
+                score = 0
+                points = 0
+            elif reward == 2:
+                score += 1
+                points = 0   
             
             if epsilon > epsilon_min:
                 epsilon = epsilon * epsilon_decay
@@ -273,10 +276,6 @@ def game(screen, max_score, play):
         # Ensure we maintain a 30 frames per second rate
         clock.tick(9)
             
-
-    f = open('data.txt', 'w')
-    f.write(str(Data))
-    f.close()
 
     g = open('qTable.txt', 'w')
     g.write(str(qTable))
@@ -300,11 +299,13 @@ def display_menu(screen, max_score):
     ai_play = 1
     ai_learn = 2
     ai_learn2 = 3
+    ai_play2 = 4
 
     menu = pygame_menu.Menu('Welcome', width=SCREEN_WIDTH, height=SCREEN_HEIGHT, theme=pygame_menu.themes.THEME_DEFAULT)
-    menu.add.button('Let AI learn', game, screen, max_score, ai_learn)
-    menu.add.button('Let AI play', game, screen, max_score, ai_play)
-    menu.add.button('Let AI learn level 2', game, screen, max_score, ai_learn2)
+    menu.add.button('AI learns level 1', game, screen, max_score, ai_learn)
+    menu.add.button('AI plays level 1', game, screen, max_score, ai_play)
+    menu.add.button('AI learns level 2', game, screen, max_score, ai_learn2)
+    menu.add.button('AI plays level 2', game, screen, max_score, ai_play2)
     menu.add.button('Play yourself', game, screen, max_score, you_play)
     menu.add.button('Quit', pygame_menu.events.EXIT)
     menu.mainloop(screen)

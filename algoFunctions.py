@@ -13,7 +13,6 @@ max_score = 0
 epsilon_min = 0.001
 epsilon_decay = 0.9
 
-Data = []
 qTable = np.zeros([9,3])
 
 def get_action(state, epsilon):
